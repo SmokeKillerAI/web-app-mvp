@@ -37,7 +37,7 @@ export interface DailyMoodModalRef {
 interface DailyMoodModalProps {}
 
 const DailyMoodModal = forwardRef<DailyMoodModalRef, DailyMoodModalProps>(
-  (props, ref) => {
+  (_, ref) => {
     const { user } = useUser();
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -157,6 +157,10 @@ const DailyMoodModal = forwardRef<DailyMoodModalRef, DailyMoodModalProps>(
         setSelectedEmotions([]);
         setExistingEntry(null);
         setIsUpdateMode(false);
+
+        // Dispatch event to notify other components about the mood update
+        const event = new CustomEvent('moodEntryUpdated');
+        window.dispatchEvent(event);
       }
 
       setIsLoading(false);

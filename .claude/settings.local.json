@@ -8,7 +8,8 @@
       "Bash(mv:*)",
       "Bash(pnpm build:*)",
       "WebFetch(domain:claude.ai)",
-      "WebFetch(domain:design-foundations.com)"
+      "WebFetch(domain:design-foundations.com)",
+      "Bash(pnpm lint:*)"
     ],
     "deny": []
   }

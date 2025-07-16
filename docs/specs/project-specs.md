@@ -63,6 +63,7 @@
    - **Button states**: 
      - Loading: "Submitting..." / "Updating..."
      - Normal: "Submit" / "Update"
+   - **Dynamic display**: "Mood Today" card shows real-time mood data
    - Style: Consistent with project design system
 
 5. **Technical Implementation**
@@ -70,6 +71,7 @@
    - **Event communication**: CustomEvent system between page and layout
    - **State management**: Local component state with mode tracking
    - **Database operations**: Conditional INSERT/UPDATE logic
+   - **Dynamic display**: Real-time mood data fetching with loading states
 
 ### A1. Audio Journal Recording
 

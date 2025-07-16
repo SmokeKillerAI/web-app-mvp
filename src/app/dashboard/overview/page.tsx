@@ -8,9 +8,14 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
+import { useTodayMood } from '@/hooks/use-today-mood';
+import { getMoodDisplayData } from '@/lib/mood-utils';
 
 export default function OverviewPage() {
+  const { moodEntry, isLoading, error } = useTodayMood();
+  const moodDisplayData = getMoodDisplayData(moodEntry);
+
   return (
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
@@ -61,9 +66,21 @@ export default function OverviewPage() {
             <CardTitle className='text-sm font-medium'>Mood Today</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className='text-2xl font-bold'>-</div>
+            <div className='flex items-center gap-2 text-2xl font-bold'>
+              {isLoading ? (
+                <Loader2 className='h-5 w-5 animate-spin' />
+              ) : error ? (
+                <span className='text-destructive'>Error</span>
+              ) : (
+                moodDisplayData.primaryText
+              )}
+            </div>
             <p className='text-muted-foreground text-xs'>
-              Complete daily check-in
+              {isLoading
+                ? 'Loading...'
+                : error
+                  ? 'Failed to load'
+                  : moodDisplayData.secondaryText}
             </p>
           </CardContent>
         </Card>

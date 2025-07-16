@@ -43,6 +43,12 @@ The A0 Daily Mood Record module has been successfully implemented as the foundat
    - **Update Operation**: UPDATE existing record by ID when daily entry exists
    - Proper TypeScript typing with `TablesInsert<'daily_question'>`
 
+6. **Dynamic Display System**
+   - **Real-time Data**: "Mood Today" card fetches current day's mood entry
+   - **State Management**: Loading, error, and data states handled gracefully
+   - **Auto-sync**: Card updates automatically after mood submission
+   - **Smart Formatting**: Day quality and emotions displayed intuitively
+
 #### Technical Implementation Notes
 
 ##### Authentication Integration
@@ -77,12 +83,43 @@ useEffect(() => {
   window.addEventListener('openDailyMoodModal', handleOpenModal);
   return () => window.removeEventListener('openDailyMoodModal', handleOpenModal);
 }, []);
+
+// Modal dispatches update events
+const event = new CustomEvent('moodEntryUpdated');
+window.dispatchEvent(event);
+```
+
+##### Dynamic Display Implementation
+```typescript
+// Database query with caching
+export const getTodayMoodEntry = cache(async (supabase, userId) => {
+  const today = new Date().toISOString().split('T')[0];
+  return await supabase
+    .from('daily_question')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('created_at', today)
+    .single();
+});
+
+// Custom hook for mood data
+export function useTodayMood() {
+  const [moodEntry, setMoodEntry] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  // Auto-refresh on mood updates
+  useEffect(() => {
+    window.addEventListener('moodEntryUpdated', refetch);
+    return () => window.removeEventListener('moodEntryUpdated', refetch);
+  }, []);
+}
 ```
 
 ##### Performance Optimizations
 - `useCallback` for stable function references
 - Conditional rendering to minimize re-renders
 - Proper cleanup of event listeners
+- React `cache` for server-side query deduplication
+- Efficient database queries with date filtering
 
 #### Architecture Decisions
 
@@ -203,7 +240,10 @@ useEffect(() => {
 #### Key Files
 - `src/features/daily-record/components/daily-mood-modal.tsx` - Main modal component
 - `src/app/dashboard/overview/layout.tsx` - Integration point
-- `src/app/dashboard/overview/page.tsx` - Manual trigger button
+- `src/app/dashboard/overview/page.tsx` - Manual trigger button & dynamic display
+- `src/lib/supabase/queries.ts` - Database query functions
+- `src/hooks/use-today-mood.ts` - Custom hook for mood data
+- `src/lib/mood-utils.ts` - Mood data formatting utilities
 - `docs/specs/project-specs.md` - Updated specifications
 
 #### Development Commands

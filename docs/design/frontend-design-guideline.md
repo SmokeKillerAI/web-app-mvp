@@ -20,18 +20,16 @@
 
 ### Color System
 
-#### Light Mode - Warm & Inviting
-* **Base Background**: Warm beige `oklch(0.94 0.015 85)` - Claude.ai inspired #f0eee5
-* **Text Color**: Warm deep taupe `oklch(0.35 0.02 75)` - Soft yet readable
-* **Primary Accent**: Terracotta tone `oklch(0.5 0.12 35)` - Earthy and approachable
-* **Surface Colors**: Slightly warmer whites for paper-like texture
-* **Borders**: Soft warm edges for gentle visual boundaries
-* **Philosophy**: Evokes the comfort of reading a well-loved book
+#### Light Mode - Breathing Space
+* **Canvas**: Warm beige `oklch(0.94 0.015 85)` - Soft foundation that recedes
+* **Voice**: Deep taupe `oklch(0.35 0.02 75)` - Words float naturally
+* **Accent**: Terracotta whisper `oklch(0.5 0.12 35)` - Gentle guidance, never intrusion
+* **Principle**: Maximum whitespace, minimal boundaries
+* **Philosophy**: Like meditation on paper - space to breathe and think
 
-#### Dark Mode - Therapeutic & Calming
-* **Base Background**: Warm night `oklch(0.13 0.02 25)` - Cozy bedroom ambiance
-* **Primary Accent**: Healing lavender `oklch(0.65 0.12 320)` - Trust and tranquility
-* **Text Color**: Soft cream `oklch(0.9 0.015 50)` - Easy on eyes for extended use
-* **Emotional Warmth**: All colors carry subtle warm undertones
-* **Philosophy**: Creates a safe space like a therapist's office
-* **Purpose**: Optimized for vulnerable conversations and late-night sessions
+#### Dark Mode - Night Sanctuary
+* **Canvas**: Warm void `oklch(0.13 0.02 25)` - Infinite depth for reflection
+* **Voice**: Cream whisper `oklch(0.9 0.015 50)` - Thoughts emerge from darkness
+* **Accent**: Lavender glow `oklch(0.65 0.12 320)` - Subtle comfort in the night
+* **Principle**: Content floats in space, no rigid containers
+* **Philosophy**: Like stargazing - vast emptiness that invites contemplation
