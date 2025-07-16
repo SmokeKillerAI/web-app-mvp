@@ -43,16 +43,33 @@
 
 2. **Business Logic**
    - Check `daily_question` table for existing entry with current date and user_id
-   - Enforce one submission per user per day
-   - Auto-trigger modal on dashboard/overview page load when no daily entry exists
+   - **Auto-trigger**: Modal automatically displays on dashboard/overview page load when no daily entry exists
+   - **Manual trigger**: "Daily Check-in" button available on overview page to open modal anytime
+   - **Update support**: If user has already submitted today, allow updating existing entry
+   - **Smart form behavior**:
+     - New entry mode: Empty form, "Submit" button
+     - Update mode: Pre-populated with existing data, "Update" button
 
 3. **Data Storage**
    - Table: `daily_question`
+   - **Create operation**: INSERT new record when no daily entry exists
+   - **Update operation**: UPDATE existing record by ID when daily entry exists
+   - **Data integrity**: One record per user per day maintained
 
 4. **UI Specifications**
    - Location: `/dashboard/overview`
    - Component: Centered modal overlay
+   - **Manual trigger**: "Daily Check-in" button with heart icon in overview page header
+   - **Button states**: 
+     - Loading: "Submitting..." / "Updating..."
+     - Normal: "Submit" / "Update"
    - Style: Consistent with project design system
+
+5. **Technical Implementation**
+   - **Component architecture**: forwardRef pattern for external triggering
+   - **Event communication**: CustomEvent system between page and layout
+   - **State management**: Local component state with mode tracking
+   - **Database operations**: Conditional INSERT/UPDATE logic
 
 ### A1. Audio Journal Recording
 

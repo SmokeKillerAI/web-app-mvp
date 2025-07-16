@@ -1,15 +1,33 @@
-import PageContainer from '@/components/layout/page-container';
-import DailyMoodModal from '@/features/daily-record/components/daily-mood-modal';
-import React from 'react';
+'use client';
 
-export default function OverViewLayout() {
+import PageContainer from '@/components/layout/page-container';
+import DailyMoodModal, {
+  DailyMoodModalRef
+} from '@/features/daily-record/components/daily-mood-modal';
+import React, { useRef, useEffect } from 'react';
+
+export default function OverViewLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  const modalRef = useRef<DailyMoodModalRef>(null);
+
+  useEffect(() => {
+    const handleOpenModal = () => {
+      modalRef.current?.openModal();
+    };
+
+    window.addEventListener('openDailyMoodModal', handleOpenModal);
+    return () => {
+      window.removeEventListener('openDailyMoodModal', handleOpenModal);
+    };
+  }, []);
+
   return (
     <PageContainer>
-      <DailyMoodModal />
-      <div className='flex flex-1 flex-col space-y-2'>
-        <div className='flex items-center justify-between space-y-2'></div>
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7'></div>
-      </div>
+      <DailyMoodModal ref={modalRef} />
+      <div key='overview-content'>{children}</div>
     </PageContainer>
   );
 }

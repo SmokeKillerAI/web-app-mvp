@@ -1,6 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useCallback
+} from 'react';
 import { useUser } from '@clerk/nextjs';
 import {
   Dialog,
@@ -14,7 +20,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { createClient } from '@/lib/supabase/client';
-import { TablesInsert } from '@/types/supabase';
+import { TablesInsert, Tables } from '@/types/supabase';
 
 const DAY_QUALITY_OPTIONS = [
   { value: 'good', label: 'Good day' },
@@ -24,24 +30,33 @@ const DAY_QUALITY_OPTIONS = [
 
 const EMOTION_OPTIONS = ['Happy', 'Anxious', 'Anger', 'Sadness', 'Despair'];
 
-export default function DailyMoodModal() {
-  const { user } = useUser();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [dayQuality, setDayQuality] = useState('');
-  const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+export interface DailyMoodModalRef {
+  openModal: () => void;
+}
 
-  const supabase = createClient();
+interface DailyMoodModalProps {}
 
-  useEffect(() => {
-    const checkDailyEntry = async () => {
-      if (!user?.id) return;
+const DailyMoodModal = forwardRef<DailyMoodModalRef, DailyMoodModalProps>(
+  (props, ref) => {
+    const { user } = useUser();
+    const [isOpen, setIsOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [dayQuality, setDayQuality] = useState('');
+    const [selectedEmotions, setSelectedEmotions] = useState<string[]>([]);
+    const [existingEntry, setExistingEntry] =
+      useState<Tables<'daily_question'> | null>(null);
+    const [isUpdateMode, setIsUpdateMode] = useState(false);
+
+    const supabase = createClient();
+
+    const checkDailyEntry = useCallback(async () => {
+      if (!user?.id) return null;
 
       const today = new Date().toISOString().split('T')[0];
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('daily_question')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
         .gte('created_at', today)
         .lt(
@@ -52,106 +67,180 @@ export default function DailyMoodModal() {
 
       if (error && error.code === 'PGRST116') {
         // No entry found for today
-        setIsOpen(true);
+        return null;
       }
+
+      return data;
+    }, [user?.id, supabase]);
+
+    const openModal = async () => {
+      const entry = await checkDailyEntry();
+
+      if (entry) {
+        // Update mode - populate with existing data
+        setExistingEntry(entry);
+        setDayQuality(entry.day_quality);
+        setSelectedEmotions(entry.emotions || []);
+        setIsUpdateMode(true);
+      } else {
+        // Create mode - clear form
+        setExistingEntry(null);
+        setDayQuality('');
+        setSelectedEmotions([]);
+        setIsUpdateMode(false);
+      }
+
+      setIsOpen(true);
     };
 
-    checkDailyEntry();
-  }, [user?.id, supabase]);
+    useEffect(() => {
+      const autoCheckAndOpen = async () => {
+        if (!user?.id) return;
 
-  const handleEmotionChange = (emotion: string, checked: boolean) => {
-    setSelectedEmotions((prev) =>
-      checked ? [...prev, emotion] : prev.filter((e) => e !== emotion)
-    );
-  };
+        const entry = await checkDailyEntry();
+        if (!entry) {
+          // Auto-open only if no entry exists
+          setIsOpen(true);
+        }
+      };
 
-  const handleSubmit = async () => {
-    if (!user?.id || !dayQuality) return;
+      autoCheckAndOpen();
+    }, [user?.id, checkDailyEntry]);
 
-    setIsLoading(true);
+    useImperativeHandle(ref, () => ({
+      openModal
+    }));
 
-    const entry: TablesInsert<'daily_question'> = {
-      user_id: user.id,
-      day_quality: dayQuality,
-      emotions: selectedEmotions
+    const handleEmotionChange = (emotion: string, checked: boolean) => {
+      setSelectedEmotions((prev) =>
+        checked ? [...prev, emotion] : prev.filter((e) => e !== emotion)
+      );
     };
 
-    const { error } = await supabase.from('daily_question').insert(entry);
+    const handleSubmit = async () => {
+      if (!user?.id || !dayQuality) return;
 
-    if (!error) {
-      setIsOpen(false);
-      setDayQuality('');
-      setSelectedEmotions([]);
-    }
+      setIsLoading(true);
 
-    setIsLoading(false);
-  };
+      let error;
 
-  const isValid = dayQuality.length > 0;
+      if (isUpdateMode && existingEntry) {
+        // Update existing entry
+        const updateData = {
+          day_quality: dayQuality,
+          emotions: selectedEmotions,
+          updated_at: new Date().toISOString()
+        };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className='sm:max-w-md'>
-        <DialogHeader>
-          <DialogTitle>Daily Check-in</DialogTitle>
-          <DialogDescription>
-            How was your day today? Please share your thoughts with us.
-          </DialogDescription>
-        </DialogHeader>
+        const result = await supabase
+          .from('daily_question')
+          .update(updateData)
+          .eq('id', existingEntry.id);
 
-        <div className='space-y-6'>
-          {/* Question 1: Day Quality */}
-          <div className='space-y-3'>
-            <Label className='text-sm font-medium'>How was your day?</Label>
-            <RadioGroup value={dayQuality} onValueChange={setDayQuality}>
-              {DAY_QUALITY_OPTIONS.map((option) => (
-                <div key={option.value} className='flex items-center space-x-2'>
-                  <RadioGroupItem value={option.value} id={option.value} />
-                  <Label htmlFor={option.value} className='cursor-pointer'>
-                    {option.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
+        error = result.error;
+      } else {
+        // Create new entry
+        const entry: TablesInsert<'daily_question'> = {
+          user_id: user.id,
+          day_quality: dayQuality,
+          emotions: selectedEmotions
+        };
 
-          {/* Question 2: Emotions */}
-          <div className='space-y-3'>
-            <Label className='text-sm font-medium'>
-              How do you feel today?
-            </Label>
-            <div className='space-y-2'>
-              {EMOTION_OPTIONS.map((emotion) => (
-                <div key={emotion} className='flex items-center space-x-2'>
-                  <Checkbox
-                    id={emotion}
-                    checked={selectedEmotions.includes(emotion)}
-                    onCheckedChange={(checked) =>
-                      handleEmotionChange(emotion, checked as boolean)
-                    }
-                  />
-                  <Label htmlFor={emotion} className='cursor-pointer'>
-                    {emotion}
-                  </Label>
-                </div>
-              ))}
+        const result = await supabase.from('daily_question').insert(entry);
+        error = result.error;
+      }
+
+      if (!error) {
+        setIsOpen(false);
+        // Reset form state
+        setDayQuality('');
+        setSelectedEmotions([]);
+        setExistingEntry(null);
+        setIsUpdateMode(false);
+      }
+
+      setIsLoading(false);
+    };
+
+    const isValid = dayQuality.length > 0;
+
+    return (
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle>Daily Check-in</DialogTitle>
+            <DialogDescription>
+              How was your day today? Please share your thoughts with us.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-6'>
+            {/* Question 1: Day Quality */}
+            <div className='space-y-3'>
+              <Label className='text-sm font-medium'>How was your day?</Label>
+              <RadioGroup value={dayQuality} onValueChange={setDayQuality}>
+                {DAY_QUALITY_OPTIONS.map((option) => (
+                  <div
+                    key={option.value}
+                    className='flex items-center space-x-2'
+                  >
+                    <RadioGroupItem value={option.value} id={option.value} />
+                    <Label htmlFor={option.value} className='cursor-pointer'>
+                      {option.label}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+
+            {/* Question 2: Emotions */}
+            <div className='space-y-3'>
+              <Label className='text-sm font-medium'>
+                How do you feel today?
+              </Label>
+              <div className='space-y-2'>
+                {EMOTION_OPTIONS.map((emotion) => (
+                  <div key={emotion} className='flex items-center space-x-2'>
+                    <Checkbox
+                      id={emotion}
+                      checked={selectedEmotions.includes(emotion)}
+                      onCheckedChange={(checked) =>
+                        handleEmotionChange(emotion, checked as boolean)
+                      }
+                    />
+                    <Label htmlFor={emotion} className='cursor-pointer'>
+                      {emotion}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className='flex justify-end space-x-2'>
+              <Button
+                variant='outline'
+                onClick={() => setIsOpen(false)}
+                disabled={isLoading}
+              >
+                Skip
+              </Button>
+              <Button onClick={handleSubmit} disabled={!isValid || isLoading}>
+                {isLoading
+                  ? isUpdateMode
+                    ? 'Updating...'
+                    : 'Submitting...'
+                  : isUpdateMode
+                    ? 'Update'
+                    : 'Submit'}
+              </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+);
 
-          <div className='flex justify-end space-x-2'>
-            <Button
-              variant='outline'
-              onClick={() => setIsOpen(false)}
-              disabled={isLoading}
-            >
-              Skip
-            </Button>
-            <Button onClick={handleSubmit} disabled={!isValid || isLoading}>
-              {isLoading ? 'Submitting...' : 'Submit'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
+DailyMoodModal.displayName = 'DailyMoodModal';
+
+export default DailyMoodModal;

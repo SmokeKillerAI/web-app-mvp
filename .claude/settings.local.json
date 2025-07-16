@@ -5,7 +5,10 @@
       "mcp__ide__getDiagnostics",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(pnpm build:*)",
+      "WebFetch(domain:claude.ai)",
+      "WebFetch(domain:design-foundations.com)"
     ],
     "deny": []
   }
