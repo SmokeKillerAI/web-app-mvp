@@ -16,8 +16,9 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Next Shadcn',
-  description: 'Basic dashboard with Next.js and Shadcn'
+  title: 'VoiceJournal',
+  description:
+    'VoiceJournal is a platform for journaling with real time voice native AI.'
 };
 
 export const viewport: Viewport = {
