@@ -33,3 +33,10 @@
 * **Accent**: Lavender glow `oklch(0.65 0.12 320)` - Subtle comfort in the night
 * **Principle**: Content floats in space, no rigid containers
 * **Philosophy**: Like stargazing - vast emptiness that invites contemplation
+
+
+### Module Layout
+
+#### Module A: Daily Record
+one-page design, 除了A1模块以外，其他的metadata信息需要保持最简设计。
+A1模块的中心
