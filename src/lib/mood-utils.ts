@@ -35,7 +35,9 @@ export function getMoodDisplayData(moodEntry: Tables<'daily_question'> | null) {
     return {
       primaryText: '-',
       secondaryText: 'Complete daily check-in',
-      hasData: false
+      hasData: false,
+      dayQuality: null,
+      emotions: []
     };
   }
 
@@ -45,6 +47,8 @@ export function getMoodDisplayData(moodEntry: Tables<'daily_question'> | null) {
   return {
     primaryText: dayQuality,
     secondaryText: emotions || 'No emotions selected',
-    hasData: true
+    hasData: true,
+    dayQuality: moodEntry.day_quality,
+    emotions: moodEntry.emotions || []
   };
 }

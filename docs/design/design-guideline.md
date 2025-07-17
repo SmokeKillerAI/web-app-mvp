@@ -39,4 +39,5 @@
 
 #### Module A: Daily Record
 one-page design, 除了A1模块以外，其他的metadata信息需要保持最简设计。
-A1模块的中心
+
+**A1 module (recorder&transcribe)**

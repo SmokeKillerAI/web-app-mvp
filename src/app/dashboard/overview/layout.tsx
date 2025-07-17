@@ -4,6 +4,9 @@ import PageContainer from '@/components/layout/page-container';
 import DailyMoodModal, {
   DailyMoodModalRef
 } from '@/features/daily-record/components/daily-mood-modal';
+import AudioJournalModal, {
+  AudioJournalModalRef
+} from '@/features/daily-record/components/audio-journal-modal';
 import React, { useRef, useEffect } from 'react';
 
 export default function OverViewLayout({
@@ -11,22 +14,37 @@ export default function OverViewLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const modalRef = useRef<DailyMoodModalRef>(null);
+  const moodModalRef = useRef<DailyMoodModalRef>(null);
+  const audioJournalModalRef = useRef<AudioJournalModalRef>(null);
 
   useEffect(() => {
-    const handleOpenModal = () => {
-      modalRef.current?.openModal();
+    const handleOpenMoodModal = () => {
+      moodModalRef.current?.openModal();
     };
 
-    window.addEventListener('openDailyMoodModal', handleOpenModal);
+    const handleOpenAudioJournalModal = () => {
+      audioJournalModalRef.current?.openModal();
+    };
+
+    window.addEventListener('openDailyMoodModal', handleOpenMoodModal);
+    window.addEventListener(
+      'openAudioJournalModal',
+      handleOpenAudioJournalModal
+    );
+
     return () => {
-      window.removeEventListener('openDailyMoodModal', handleOpenModal);
+      window.removeEventListener('openDailyMoodModal', handleOpenMoodModal);
+      window.removeEventListener(
+        'openAudioJournalModal',
+        handleOpenAudioJournalModal
+      );
     };
   }, []);
 
   return (
     <PageContainer>
-      <DailyMoodModal ref={modalRef} />
+      <DailyMoodModal ref={moodModalRef} />
+      <AudioJournalModal ref={audioJournalModalRef} />
       <div key='overview-content'>{children}</div>
     </PageContainer>
   );

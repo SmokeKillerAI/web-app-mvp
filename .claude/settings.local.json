@@ -9,7 +9,9 @@
       "Bash(pnpm build:*)",
       "WebFetch(domain:claude.ai)",
       "WebFetch(domain:design-foundations.com)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:platform.openai.com)"
     ],
     "deny": []
   }
