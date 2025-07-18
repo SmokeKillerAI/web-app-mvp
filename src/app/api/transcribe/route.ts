@@ -55,27 +55,32 @@ export async function POST(request: NextRequest) {
       transcription.substring(0, 100) + '...'
     );
 
-    // Step 2: Generate AI summary
+    // Step 2: AI rephraser for rephrasing the transcription
     const summaryResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: `You are a helpful assistant that summarizes personal journal entries. 
-                   Create a concise, structured summary that:
-                   - Removes redundancies and filler words
-                   - Corrects grammar while preserving the original meaning and tone
-                   - Highlights key themes, emotions, and important points
-                   - Organizes content logically
-                   - Keeps the personal, reflective nature intact
-                   - Aims for 2-3 sentences maximum unless the content is very rich`
+          content: `You are a helpful assistant that transforms spoken journal entries into polished first-person summaries.
+                   
+                   Your task is to:
+                   - Write ENTIRELY in first-person perspective (I, me, my)
+                   - Remove ALL filler words, speech disfluencies (um, uh, like, you know)
+                   - Eliminate repetitions and redundant expressions
+                   - Fix grammar while maintaining the speaker's authentic voice
+                   - Preserve key emotions, insights, and important details
+                   - Structure thoughts coherently and logically
+                   - Keep the personal, reflective tone
+                   - Aim for 3-5 sentences that capture the essence
+                   
+                   Transform the raw transcript into what the person would write if they were journaling directly.`
         },
         {
           role: 'user',
-          content: `Please summarize this journal entry:\n\n${transcription}`
+          content: `Transform this spoken journal entry into a first-person written summary:\n\n${transcription}`
         }
       ],
-      max_tokens: 200,
+      max_tokens: 300,
       temperature: 0.3
     });
 

@@ -14,7 +14,7 @@ export type Product = {
 //Info: The following data is used for the sidebar navigation and Cmd K bar.
 export const navItems: NavItem[] = [
   {
-    title: 'Record Journal',
+    title: 'Record',
     url: '/dashboard/overview',
     icon: 'record',
     isActive: false,
@@ -22,8 +22,8 @@ export const navItems: NavItem[] = [
     items: [] // Empty array as there are no child items for Record Journal
   },
   {
-    title: 'Your Journal Book',
-    url: '/dashboard/product',
+    title: 'Journal Book',
+    url: '/dashboard/journals',
     icon: 'book',
     shortcut: ['j', 'j'],
     isActive: false,

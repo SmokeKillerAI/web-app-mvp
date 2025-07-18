@@ -15,7 +15,7 @@
 
 ## Module A: Daily Record
 
-### A0. Daily Mood Record
+### A0. Daily Mood Record ✅ *Implemented*
 
 **Purpose**: Capture user's daily emotional state through structured questionnaires.
 
@@ -77,28 +77,61 @@
 
 **Purpose**: Enable voice-based journaling with automatic transcription and summarization.
 
-**Current Implementation**:
+**Functional Requirements**:
 
-1. **Audio Recording** - Browser-based MediaRecorder API
-   - Real-time duration display with progress bar
-   - 10-minute max duration with auto-stop
-   - webm/opus format support
+1. **Data Collection Interface**
+   - Browser-based MediaRecorder API with webm/opus format
+   - Real-time duration display with visual progress bar
+   - 10-minute maximum duration with automatic stop
+   - Record/stop controls with clear visual feedback
+   - Audio playback functionality for recorded content
 
-2. **Processing Pipeline** - OpenAI Integration
-   - Whisper-1 for speech-to-text ($0.006/minute)
-   - GPT-4o-mini for intelligent summarization
-   - 4-7 second average processing time
+2. **Business Logic**
+   - **Audio Processing Pipeline**:
+     - Transcription: OpenAI Whisper-1 API ($0.006/minute)
+     - Summarization: GPT-4o-mini for content structuring
+     - Processing time: 4-7 seconds average
+   - **File Management**:
+     - Maximum file size: 25MB (API limitation)
+     - Storage path structure: `journal-audio/[user-id]/[timestamp]-recording.webm`
 
-3. **Data Storage** - Leveraging existing infrastructure
-   - Audio files in Supabase Storage (`audio-files` bucket)
-   - Metadata in `audio_files` table
-   - Transcripts + summaries in `transcripts` table
+3. **Data Storage**
+   - Table: `audio_files`
+     - Stores: user_id, storage_path, mime_type, duration_ms
+   - Table: `transcripts`
+     - Stores: user_id, audio_id (FK), text, language
+   - Storage: Supabase Storage bucket `audio-files`
+   - **Data integrity**: Each audio file linked to its transcript
 
-4. **User Interface** - Integrated with Overview page
-   - "Voice Journal" button in dashboard header
-   - Modal interface consistent with A0 design
-   - Real-time stats display integration
+4. **UI Specifications**
+   - Location: `/dashboard/overview` (embedded panel, right column)
+   - Component: AudioJournalPanel (no modal, direct integration)
+   - **Design**: Clean interface following "Intelligent Minimalism"
+   - **Visual hierarchy**: Central focus with two-column layout
+   - **Real-time stats**: Display total entries, weekly count, streak
 
-**Technical Stack**: Next.js API routes, OpenAI SDK, Supabase admin client, Clerk authentication
+5. **Technical Implementation**
+   - **API endpoint**: `/api/transcribe` with multipart form data
+   - **Authentication**: Clerk user verification required
+   - **Admin access**: Service role key for RLS bypass
+   - **Error handling**: Comprehensive error responses
+   - **Event system**: CustomEvent for cross-component updates
 
-**Next Steps**: Security enhancements, UI polish, multi-language support
+
+### A2. [Planned] AI-Powered Insights
+
+**Purpose**: Generate intelligent insights from journal entries using AI analysis.
+
+**Status**: 🔄 Planned - Not implemented
+
+---
+
+## Module B: [Future] Social Features
+
+**Status**: 📋 Future module - Not in current roadmap
+
+---
+
+## Module C: [Future] Analytics & Insights  
+
+**Status**: 📋 Future module - Not in current roadmap
