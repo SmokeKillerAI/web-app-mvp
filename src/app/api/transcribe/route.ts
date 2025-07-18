@@ -84,8 +84,8 @@ export async function POST(request: NextRequest) {
       temperature: 0.3
     });
 
-    const summary = summaryResponse.choices[0]?.message?.content || '';
-    console.log('Summary generated:', summary.substring(0, 100) + '...');
+    const rephrasedText = summaryResponse.choices[0]?.message?.content || '';
+    console.log('Summary generated:', rephrasedText.substring(0, 100) + '...');
 
     // Step 3: Store audio file in Supabase Storage
     const supabase = createAdminClient();
@@ -130,14 +130,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 5: Save transcript with summary
+    // Step 5: Save transcript with rephrased text
     const { data: transcriptData, error: transcriptError } = await supabase
       .from('transcripts')
       .insert({
         user_id: userId,
         audio_id: audioFileData.id,
-        text: `${transcription}\n\n--- SUMMARY ---\n${summary}`,
-        language: 'en' // Could be detected from Whisper if needed
+        text: transcription,
+        rephrased_text: rephrasedText,
+        language: 'en' // Could be detected from Whisper if neededs
       })
       .select()
       .single();
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       transcription,
-      summary,
+      rephrasedText,
       audioFileId: audioFileData.id,
       transcriptId: transcriptData.id
     });

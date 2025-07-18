@@ -118,7 +118,16 @@
    - **Event system**: CustomEvent for cross-component updates
 
 
-### A2. [Planned] AI-Powered Insights
+
+### A2. [ongoing] User’s Journal (Journal Book)
+
+**Purpose**: Generate intelligent insights from journal entries using AI analysis.
+
+**Status**: 🔄 Planned - Not implemented
+
+---
+
+### A3. [Planned] AI-Powered Insights
 
 **Purpose**: Generate intelligent insights from journal entries using AI analysis.
 

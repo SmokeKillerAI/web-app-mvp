@@ -74,6 +74,7 @@ export type Database = {
           created_at: string | null;
           id: string;
           language: string | null;
+          rephrased_text: string | null;
           text: string | null;
           user_id: string;
         };
@@ -82,6 +83,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           language?: string | null;
+          rephrased_text?: string | null;
           text?: string | null;
           user_id: string;
         };
@@ -90,6 +92,7 @@ export type Database = {
           created_at?: string | null;
           id?: string;
           language?: string | null;
+          rephrased_text?: string | null;
           text?: string | null;
           user_id?: string;
         };

@@ -4,7 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Mic, Square, Loader2, Play, Pause } from 'lucide-react';
+import {
+  Mic,
+  Square,
+  Loader2,
+  Play,
+  Pause,
+  RotateCcw,
+  Trash2
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AudioJournalPanelProps {
@@ -64,7 +72,26 @@ export default function AudioJournalPanel({
     }
   }, []);
 
-  const startRecording = async () => {
+  const stopRecording = useCallback(() => {
+    if (
+      mediaRecorderRef.current &&
+      (recordingState === 'recording' || recordingState === 'paused')
+    ) {
+      mediaRecorderRef.current.stop();
+
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    }
+  }, [recordingState]);
+
+  const startRecording = useCallback(async () => {
     try {
       setError(null);
 
@@ -115,26 +142,125 @@ export default function AudioJournalPanel({
       console.error('Error starting recording:', err);
       setError('Unable to access microphone. Please check permissions.');
     }
-  };
+  }, [stopRecording]);
 
-  const stopRecording = useCallback(() => {
+  const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && recordingState === 'recording') {
-      mediaRecorderRef.current.stop();
+      try {
+        // Check if MediaRecorder is still in a valid state
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.pause();
+          setRecordingState('paused');
 
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        } else {
+          // MediaRecorder is in an invalid state, reset everything
+          console.warn(
+            'MediaRecorder is not in recording state:',
+            mediaRecorderRef.current.state
+          );
+          setRecordingState('idle');
+          setRecordingTime(0);
+          setError('Recording session ended unexpectedly.');
+        }
+      } catch (err) {
+        console.error('Error pausing recording:', err);
+        setError('Failed to pause recording.');
+        setRecordingState('idle');
+        setRecordingTime(0);
       }
     }
   }, [recordingState]);
 
+  const resumeRecording = useCallback(() => {
+    if (mediaRecorderRef.current && recordingState === 'paused') {
+      try {
+        // Check if MediaRecorder is still in a valid state
+        if (mediaRecorderRef.current.state === 'paused') {
+          mediaRecorderRef.current.resume();
+          setRecordingState('recording');
+
+          intervalRef.current = setInterval(() => {
+            setRecordingTime((prev) => {
+              const newTime = prev + 1000;
+              if (newTime >= MAX_RECORDING_TIME) {
+                stopRecording();
+                return MAX_RECORDING_TIME;
+              }
+              return newTime;
+            });
+          }, 1000);
+        } else {
+          // MediaRecorder is in an invalid state, reset everything
+          console.warn(
+            'MediaRecorder is not in paused state:',
+            mediaRecorderRef.current.state
+          );
+          setRecordingState('idle');
+          setRecordingTime(0);
+          setError('Recording session ended. Please start a new recording.');
+        }
+      } catch (err) {
+        console.error('Error resuming recording:', err);
+        setError('Failed to resume recording. Please start a new recording.');
+        setRecordingState('idle');
+        setRecordingTime(0);
+      }
+    }
+  }, [recordingState, stopRecording]);
+
+  const restartRecording = useCallback(() => {
+    // Stop current recording if any
+    if (
+      mediaRecorderRef.current &&
+      (recordingState === 'recording' || recordingState === 'paused')
+    ) {
+      mediaRecorderRef.current.stop();
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    // Reset states
+    setRecordingState('idle');
+    setRecordingTime(0);
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setError(null);
+
+    // Start new recording
+    setTimeout(() => {
+      startRecording();
+    }, 100);
+  }, [recordingState, startRecording]);
+
+  const discardRecording = useCallback(() => {
+    // Clear recording data
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setRecordingState('idle');
+    setRecordingTime(0);
+    setError(null);
+    setIsPlaying(false);
+    setTranscription('');
+    setSummary('');
+
+    // Clear any processing state
+    setProcessingState('idle');
+  }, []);
+
   const processAudio = async () => {
     if (!audioBlob || !user?.id) return;
+
+    // Prevent duplicate processing
+    if (processingState !== 'idle') {
+      console.warn('Processing already in progress');
+      return;
+    }
 
     try {
       setProcessingState('transcribing');
@@ -154,7 +280,7 @@ export default function AudioJournalPanel({
 
       const result = await response.json();
       setTranscription(result.transcription);
-      setSummary(result.summary);
+      setSummary(result.rephrasedText);
       setProcessingState('complete');
 
       // Dispatch event to notify other components
@@ -202,6 +328,7 @@ export default function AudioJournalPanel({
         return 'Processing failed';
       default:
         if (recordingState === 'recording') return 'Recording in progress...';
+        if (recordingState === 'paused') return 'Recording paused';
         if (recordingState === 'stopped') return 'Recording complete';
         return 'Ready to record your thoughts';
     }
@@ -215,10 +342,13 @@ export default function AudioJournalPanel({
   }, [resetState]);
 
   const isRecording = recordingState === 'recording';
+  const isPaused = recordingState === 'paused';
   const hasRecording = recordingState === 'stopped' && audioBlob;
   const isProcessing =
     processingState !== 'idle' && processingState !== 'complete';
   const isComplete = processingState === 'complete';
+  const canProcess =
+    hasRecording && !isProcessing && processingState === 'idle';
 
   return (
     <div className={cn('mx-auto w-full max-w-md', className)}>
@@ -251,24 +381,61 @@ export default function AudioJournalPanel({
         {/* Main Recording Button */}
         <div className='flex justify-center'>
           {!hasRecording ? (
-            <Button
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isProcessing}
-              size='lg'
-              className={cn(
-                'h-20 w-20 rounded-full transition-all duration-300',
-                'shadow-lg hover:shadow-xl',
-                isRecording
-                  ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-primary hover:bg-primary/90 hover:scale-105'
+            <div className='flex items-center gap-4'>
+              {/* Primary Recording Button */}
+              <Button
+                onClick={
+                  isRecording
+                    ? stopRecording
+                    : isPaused
+                      ? resumeRecording
+                      : startRecording
+                }
+                disabled={isProcessing}
+                size='lg'
+                className={cn(
+                  'h-20 w-20 rounded-full transition-all duration-300',
+                  'shadow-lg hover:shadow-xl',
+                  isRecording
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : isPaused
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-primary hover:bg-primary/90 hover:scale-105'
+                )}
+              >
+                {isRecording ? (
+                  <Square className='h-8 w-8' />
+                ) : isPaused ? (
+                  <Play className='h-8 w-8' />
+                ) : (
+                  <Mic className='h-8 w-8' />
+                )}
+              </Button>
+
+              {/* Secondary Controls */}
+              {(isRecording || isPaused) && (
+                <div className='flex flex-col gap-2'>
+                  {isRecording && (
+                    <Button
+                      onClick={pauseRecording}
+                      variant='outline'
+                      size='sm'
+                      className='h-12 w-12 rounded-full'
+                    >
+                      <Pause className='h-4 w-4' />
+                    </Button>
+                  )}
+                  <Button
+                    onClick={restartRecording}
+                    variant='outline'
+                    size='sm'
+                    className='h-12 w-12 rounded-full'
+                  >
+                    <RotateCcw className='h-4 w-4' />
+                  </Button>
+                </div>
               )}
-            >
-              {isRecording ? (
-                <Square className='h-8 w-8' />
-              ) : (
-                <Mic className='h-8 w-8' />
-              )}
-            </Button>
+            </div>
           ) : (
             <div className='flex items-center gap-4'>
               <Button
@@ -285,8 +452,17 @@ export default function AudioJournalPanel({
               </Button>
 
               <Button
+                onClick={discardRecording}
+                variant='outline'
+                size='lg'
+                className='h-16 w-16 rounded-full border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50'
+              >
+                <Trash2 className='h-6 w-6' />
+              </Button>
+
+              <Button
                 onClick={processAudio}
-                disabled={isProcessing}
+                disabled={!canProcess}
                 size='lg'
                 className='rounded-full px-8 py-4 shadow-lg hover:shadow-xl'
               >
@@ -338,14 +514,25 @@ export default function AudioJournalPanel({
               </div>
             )}
             <div className='pt-4 text-center'>
-              <Button
-                onClick={resetState}
-                variant='outline'
-                size='sm'
-                className='rounded-full'
-              >
-                Record Another
-              </Button>
+              <div className='flex justify-center gap-2'>
+                <Button
+                  onClick={resetState}
+                  variant='outline'
+                  size='sm'
+                  className='rounded-full'
+                >
+                  Record Another
+                </Button>
+                <Button
+                  onClick={discardRecording}
+                  variant='outline'
+                  size='sm'
+                  className='rounded-full border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50'
+                >
+                  <Trash2 className='mr-2 h-4 w-4' />
+                  Clear
+                </Button>
+              </div>
             </div>
           </div>
         )}
