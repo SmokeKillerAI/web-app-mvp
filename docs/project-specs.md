@@ -83,14 +83,17 @@
    - Browser-based MediaRecorder API with webm/opus format
    - Real-time duration display with visual progress bar
    - 10-minute maximum duration with automatic stop
-   - Record/stop controls with clear visual feedback
+   - Record/stop/pause/resume controls with clear visual feedback
    - Audio playback functionality for recorded content
+   - **Recording controls**: Restart recording, discard after stop
+   - **Manual state management**: Clear button for processed recordings
 
 2. **Business Logic**
    - **Audio Processing Pipeline**:
      - Transcription: OpenAI Whisper-1 API ($0.006/minute)
      - Summarization: GPT-4o-mini for content structuring
      - Processing time: 4-7 seconds average
+     - **Processing state check**: Prevent duplicate submissions
    - **File Management**:
      - Maximum file size: 25MB (API limitation)
      - Storage path structure: `journal-audio/[user-id]/[timestamp]-recording.webm`
