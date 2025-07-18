@@ -226,16 +226,15 @@ export default function AudioJournalPanel({
     }
 
     // Reset states
-    setRecordingState('idle');
     setRecordingTime(0);
     setAudioBlob(null);
     setAudioUrl(null);
     setError(null);
 
-    // Start new recording
+    // Start new recording immediately
     setTimeout(() => {
       startRecording();
-    }, 100);
+    }, 50);
   }, [recordingState, startRecording]);
 
   const discardRecording = useCallback(() => {
