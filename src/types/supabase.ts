@@ -68,6 +68,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      daily_summaries: {
+        Row: {
+          created_at: string | null;
+          date: string;
+          dominant_emotions: string[] | null;
+          entry_count: number | null;
+          id: string;
+          mood_quality: string | null;
+          summary: string;
+          updated_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string | null;
+          date: string;
+          dominant_emotions?: string[] | null;
+          entry_count?: number | null;
+          id?: string;
+          mood_quality?: string | null;
+          summary: string;
+          updated_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string | null;
+          date?: string;
+          dominant_emotions?: string[] | null;
+          entry_count?: number | null;
+          id?: string;
+          mood_quality?: string | null;
+          summary?: string;
+          updated_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       transcripts: {
         Row: {
           audio_id: string;

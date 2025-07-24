@@ -19,7 +19,7 @@ EchoJournal AI is a voice‑native Journal Assistant that grows with you. Instea
 * **Scheduled Self-Reflection Event:** Users receive regular reflection prompts (weekly, monthly, quarterly).  
 * **Privacy by Design** — End‑to‑end AES‑GCM, zero‑knowledge key management and differential‑privacy analytics.
 
-### **Problems**
+### **Problems(pain points)**
 
 * Typing journals is tedious—over 60 % of diarists quit within a month.  
 * Voice notes are unstructured; insights are hard to retrieve.  

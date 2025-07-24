@@ -11,7 +11,8 @@
       "WebFetch(domain:design-foundations.com)",
       "Bash(pnpm lint:*)",
       "Bash(find:*)",
-      "WebFetch(domain:platform.openai.com)"
+      "WebFetch(domain:platform.openai.com)",
+      "Bash(pnpm supabase:generate-types:*)"
     ],
     "deny": []
   }

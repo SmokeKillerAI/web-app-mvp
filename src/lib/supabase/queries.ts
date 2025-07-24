@@ -194,3 +194,202 @@ export const getAudioJournalStats = cache(
     };
   }
 );
+
+/**
+ * Get journals with daily summaries for the specified user
+ * @param supabase - Supabase client instance
+ * @param userId - User ID
+ * @param options - Query options for filtering and pagination
+ * @returns Array of daily records with journals and summaries
+ */
+export const getJournalsWithSummaries = cache(
+  async (
+    supabase: TypedSupabaseClient,
+    userId: string,
+    options?: {
+      startDate?: string;
+      endDate?: string;
+      moods?: string[];
+      keyword?: string;
+      page?: number;
+      limit?: number;
+    }
+  ) => {
+    if (!userId) return { data: [], totalCount: 0 };
+
+    const page = options?.page || 1;
+    const limit = options?.limit || 10;
+    const offset = (page - 1) * limit;
+
+    // Build the query for daily summaries
+    let summariesQuery = supabase
+      .from('daily_summaries')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId);
+
+    // Apply date filters
+    if (options?.startDate) {
+      summariesQuery = summariesQuery.gte('date', options.startDate);
+    }
+    if (options?.endDate) {
+      summariesQuery = summariesQuery.lte('date', options.endDate);
+    }
+
+    // Apply mood filters
+    if (options?.moods && options.moods.length > 0) {
+      summariesQuery = summariesQuery.in('mood_quality', options.moods);
+    }
+
+    // Apply keyword search in summary
+    if (options?.keyword) {
+      summariesQuery = summariesQuery.ilike('summary', `%${options.keyword}%`);
+    }
+
+    // Execute query with pagination
+    const {
+      data: summaries,
+      error: summariesError,
+      count
+    } = await summariesQuery
+      .order('date', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (summariesError) {
+      console.error('Error fetching journal summaries:', summariesError);
+      return { data: [], totalCount: 0 };
+    }
+
+    // For each summary, fetch the corresponding journal entries
+    const journalsWithSummaries = await Promise.all(
+      (summaries || []).map(async (summary) => {
+        const startOfDay = new Date(summary.date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(summary.date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const { data: journals, error: journalsError } = await supabase
+          .from('audio_files')
+          .select(
+            `
+            *,
+            transcripts (
+              id,
+              text,
+              rephrased_text,
+              language,
+              created_at
+            )
+          `
+          )
+          .eq('user_id', userId)
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString())
+          .order('created_at', { ascending: true });
+
+        if (journalsError) {
+          console.error(
+            'Error fetching journals for date:',
+            summary.date,
+            journalsError
+          );
+        }
+
+        // Also fetch the daily mood for this date
+        const { data: moodData } = await supabase
+          .from('daily_question')
+          .select('*')
+          .eq('user_id', userId)
+          .gte('created_at', startOfDay.toISOString())
+          .lte('created_at', endOfDay.toISOString())
+          .single();
+
+        return {
+          ...summary,
+          journals: journals || [],
+          dailyMood: moodData || null
+        };
+      })
+    );
+
+    return {
+      data: journalsWithSummaries,
+      totalCount: count || 0
+    };
+  }
+);
+
+/**
+ * Get a specific daily summary
+ * @param supabase - Supabase client instance
+ * @param userId - User ID
+ * @param date - Date string (YYYY-MM-DD)
+ * @returns Daily summary or null
+ */
+export const getDailySummary = cache(
+  async (supabase: TypedSupabaseClient, userId: string, date: string) => {
+    if (!userId || !date) return null;
+
+    const { data, error } = await supabase
+      .from('daily_summaries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', date)
+      .single();
+
+    if (error && error.code === 'PGRST116') {
+      // No summary found for this date
+      return null;
+    }
+
+    if (error) {
+      console.error('Error fetching daily summary:', error);
+      return null;
+    }
+
+    return data;
+  }
+);
+
+/**
+ * Search journals by keyword in transcripts
+ * @param supabase - Supabase client instance
+ * @param userId - User ID
+ * @param keyword - Search keyword
+ * @param limit - Number of results to return
+ * @returns Array of matching journal entries
+ */
+export const searchJournals = cache(
+  async (
+    supabase: TypedSupabaseClient,
+    userId: string,
+    keyword: string,
+    limit: number = 20
+  ) => {
+    if (!userId || !keyword) return [];
+
+    const { data, error } = await supabase
+      .from('transcripts')
+      .select(
+        `
+        *,
+        audio_files!inner(
+          id,
+          storage_path,
+          mime_type,
+          created_at
+        )
+      `
+      )
+      .eq('user_id', userId)
+      .or(`text.ilike.%${keyword}%,rephrased_text.ilike.%${keyword}%`)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error searching journals:', error);
+      return [];
+    }
+
+    return data;
+  }
+);
